@@ -40,11 +40,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .card-tools button{flex:1;min-height:38px;padding:7px;font-size:.82rem}
 .empty{border:1px dashed #bdcbc5;border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
 #recordingControls{background:#f6f5ee;border-radius:12px;padding:12px;margin-top:10px}
-.fullscreen-view{position:fixed;inset:0;z-index:1000;background:#101715;display:none;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.fullscreen-view{position:fixed;inset:0;z-index:1000;background:#000;display:none;align-items:center;justify-content:center;padding:20px;cursor:pointer}
 .fullscreen-view.open{display:flex}
-.fullscreen-view img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
-.fullscreen-caption{position:absolute;left:0;right:0;bottom:0;padding:16px 20px calc(16px + env(safe-area-inset-bottom));color:#fff;text-align:center;background:linear-gradient(transparent,#0009);font-weight:700;text-shadow:0 1px 3px #000}
-.fullscreen-close{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:2;background:#ffffffdd;color:#1e2c29;min-width:48px;min-height:48px;border-radius:50%;font-size:1.3rem;padding:8px}
+.fullscreen-view img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;cursor:pointer}
+.fullscreen-close{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3;background:#ffffffdd;color:#1e2c29;min-width:48px;min-height:48px;border-radius:50%;font-size:1.3rem;padding:8px}
+.fullscreen-show-image{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2;background:#fff;color:#111;white-space:nowrap}
+.fullscreen-view.image-hidden img{display:none}
+.fullscreen-view.image-visible .fullscreen-show-image{display:none}
 footer{padding:0 16px 26px;color:var(--muted);font-size:.82rem;line-height:1.6}
 @media(max-width:560px){main{padding:10px}.panel{padding:13px}#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
@@ -52,7 +54,7 @@ footer{padding:0 16px 26px;color:var(--muted);font-size:.82rem;line-height:1.6}
 <body>
 <header><div class="wrap">
 <h1>おととイメージ</h1>
-<p>音と画像をひと組にして、画像をタップすると音が鳴るアプリ。</p>
+<p>音を聴いて、必要なときに画像を見るアプリ。</p>
 </div></header>
 <main>
 <section class="panel">
@@ -98,17 +100,17 @@ footer{padding:0 16px 26px;color:var(--muted);font-size:.82rem;line-height:1.6}
 </section>
 <section class="panel">
   <h2>登録した音と画像</h2>
-  <p class="small">画像をタップすると、対応する音が再生されます。音の再生中は画像が画面いっぱいに表示されます。</p>
+  <p class="small">登録したカードを押すと黒い画面になります。画面をタップすると音が鳴り、「画像を見る」を押すと画像が表示されます。表示された画像をタップすると、もう一度音が鳴ります。</p>
   <div class="actions" style="margin:0 0 14px">
     <button class="primary" id="randomPlay" disabled>ランダムに1つ再生</button>
   </div>
   <div id="cards"><div class="empty">まだ登録データはありません。</div></div>
 </section>
 </main>
-<div id="fullscreenView" class="fullscreen-view" role="dialog" aria-modal="true" aria-label="音のイメージ表示">
+<div id="fullscreenView" class="fullscreen-view image-hidden" role="dialog" aria-modal="true" aria-label="音のイメージ表示">
 <button type="button" id="fullscreenClose" class="fullscreen-close" aria-label="閉じる">×</button>
+<button type="button" id="showFullscreenImage" class="fullscreen-show-image">画像を見る</button>
 <img id="fullscreenImage" alt="">
-<div id="fullscreenCaption" class="fullscreen-caption"></div>
 </div>
 <footer>試作版では、登録したデータはこのページを開いている間だけ保持されます。再読み込みやページを閉じると消えます。iPadで録音するには、SafariでHTTPSのWebページとして開き、マイクの使用を許可してください。保存済みの音から選ぶ場合は音声ファイルを選択してください（動画ファイルには対応していません）。</footer>
 <script>
@@ -257,44 +259,54 @@ function renderCards(){
     const thumb=document.createElement('div');thumb.className='thumb';
     const img=document.createElement('img');img.src=item.imageUrl;img.alt=item.name;thumb.appendChild(img);
     const title=document.createElement('div');title.className='card-title';title.textContent=item.name;
-    const hint=document.createElement('div');hint.className='card-hint';hint.textContent='画像をタップして再生';
-    play.append(thumb,title,hint);play.addEventListener('click',()=>playAudio(item));
+    const hint=document.createElement('div');hint.className='card-hint';hint.textContent='開いて音を聴く';
+    play.append(thumb,title,hint);play.addEventListener('click',()=>openSoundScreen(item));
     const tools=document.createElement('div');tools.className='card-tools';
-    const playBtn=document.createElement('button');playBtn.className='secondary';playBtn.textContent='再生';playBtn.addEventListener('click',()=>playAudio(item));
+    const playBtn=document.createElement('button');playBtn.className='secondary';playBtn.textContent='開く';playBtn.addEventListener('click',()=>openSoundScreen(item));
     const delBtn=document.createElement('button');delBtn.className='danger';delBtn.textContent='削除';delBtn.addEventListener('click',()=>deleteItem(item.id));
     tools.append(playBtn,delBtn);card.append(play,tools);root.appendChild(card);
   });
 }
-function showFullscreenImage(item){
-  $('fullscreenImage').src=item.imageUrl;
-  $('fullscreenImage').alt=item.name;
-  $('fullscreenCaption').textContent=item.name+' · 画像をタップすると再生';
-  $('fullscreenView').classList.add('open');
-}
-function hideFullscreenImage(){ $('fullscreenView').classList.remove('open'); }
-$('fullscreenClose').addEventListener('click',e=>{e.stopPropagation();hideFullscreenImage();});
-$('fullscreenImage').addEventListener('click',e=>{e.stopPropagation();if(currentItem)playAudio(currentItem);});
-$('fullscreenView').addEventListener('click',e=>{if(e.target===$('fullscreenView'))hideFullscreenImage();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')hideFullscreenImage();});
-function playAudio(item){
+function openSoundScreen(item){
   if(currentPlayback){currentPlayback.pause();currentPlayback.currentTime=0;currentPlayback=null;}
   currentItem=item;
-  showFullscreenImage(item);
-  const audio=new Audio(item.audioUrl);currentPlayback=audio;
-  audio.addEventListener('ended',()=>{if(currentPlayback===audio){currentPlayback=null;$('fullscreenCaption').textContent=item.name+' · もう一度画像をタップすると再生';}},{once:true});
-  audio.addEventListener('error',()=>{if(currentPlayback===audio)currentPlayback=null;$('fullscreenCaption').textContent='この音声形式を再生できませんでした。別の音声ファイルを試してください。';},{once:true});
-  audio.play().catch(()=>{$('fullscreenCaption').textContent='再生できませんでした。もう一度画像をタップしてください。';});
+  $('fullscreenImage').src=item.imageUrl;
+  $('fullscreenImage').alt=item.name;
+  $('fullscreenView').classList.remove('image-visible');
+  $('fullscreenView').classList.add('image-hidden','open');
 }
+function hideFullscreenImage(){ $('fullscreenView').classList.remove('open'); }
+function playCurrentItem(){
+  if(!currentItem)return;
+  if(currentPlayback){currentPlayback.pause();currentPlayback.currentTime=0;currentPlayback=null;}
+  const item=currentItem;
+  const audio=new Audio(item.audioUrl);currentPlayback=audio;
+  audio.addEventListener('ended',()=>{if(currentPlayback===audio)currentPlayback=null;},{once:true});
+  audio.addEventListener('error',()=>{if(currentPlayback===audio)currentPlayback=null;alert('この音声形式を再生できませんでした。別の音声ファイルを試してください。');},{once:true});
+  audio.play().catch(()=>alert('再生できませんでした。もう一度画面をタップしてください。'));
+}
+$('showFullscreenImage').addEventListener('click',e=>{
+  e.stopPropagation();
+  $('fullscreenView').classList.remove('image-hidden');
+  $('fullscreenView').classList.add('image-visible');
+});
+$('fullscreenClose').addEventListener('click',e=>{e.stopPropagation();hideFullscreenImage();});
+$('fullscreenImage').addEventListener('click',e=>{e.stopPropagation();playCurrentItem();});
+$('fullscreenView').addEventListener('click',e=>{
+  if(e.target===$('fullscreenView'))playCurrentItem();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideFullscreenImage();});
+function playAudio(item){openSoundScreen(item);playCurrentItem();}
 function deleteItem(id){
   const item=items.find(x=>x.id===id);if(!item)return;
-  if(currentItem && currentItem.id===id && currentPlayback){currentPlayback.pause();currentPlayback=null;hideFullscreenImage();}
+  if(currentItem && currentItem.id===id){if(currentPlayback){currentPlayback.pause();currentPlayback=null;}hideFullscreenImage();currentItem=null;}
   URL.revokeObjectURL(item.audioUrl);URL.revokeObjectURL(item.imageUrl);
   items=items.filter(x=>x.id!==id);renderCards();
 }
 $('randomPlay').addEventListener('click',()=>{
   if(!items.length)return;
   const item=items[Math.floor(Math.random()*items.length)];
-  playAudio(item);
+  openSoundScreen(item);
 });
 window.addEventListener('beforeunload',()=>{
   items.forEach(i=>{URL.revokeObjectURL(i.audioUrl);URL.revokeObjectURL(i.imageUrl);});
