@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f5ef">
+<title>おととイメージ</title>
+<style>
+:root{--ink:#263238;--muted:#667579;--paper:#fbfaf6;--card:#fff;--accent:#356c67;--accent2:#e7f2ef;--line:#dce4df}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+header{padding:22px 16px 16px;background:#eaf2ed;border-bottom:1px solid var(--line)}
+.wrap,main,footer{max-width:920px;margin:0 auto}
+h1{font-size:clamp(1.6rem,5vw,2.2rem);margin:0}
+header p{margin:7px 0 0;color:#4e625e;line-height:1.6}
+main{padding:16px;display:grid;gap:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 3px 12px #253d3210}
+h2{font-size:1.1rem;margin:0 0 12px}
+label{display:block;font-weight:650;font-size:.92rem;margin:12px 0 6px}
+input[type=text]{width:100%;font:inherit;padding:12px;border:1px solid #bdcbc5;border-radius:10px;background:#fff}
+button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:12px 15px;cursor:pointer;min-height:46px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--accent);color:#fff}
+.secondary{background:var(--accent2);color:var(--accent)}
+.danger{background:#fae9e6;color:#8c3c32}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.actions button{flex:1}
+.small{font-size:.85rem;color:var(--muted);line-height:1.55}
+.status{background:#f6f5ee;border-radius:10px;padding:10px 12px;font-size:.9rem;line-height:1.5;margin-top:12px}
+.hidden{display:none!important}
+.field-group{border-top:1px solid var(--line);padding-top:12px;margin-top:14px}
+#cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:12px}
+.sound-card{border:1px solid var(--line);background:white;border-radius:14px;overflow:hidden}
+.play-card{width:100%;padding:0;background:white;color:var(--ink);text-align:left;border-radius:0;min-height:0}
+.thumb{aspect-ratio:1/1;background:#f0f3ef;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.card-title{padding:10px 11px 3px;font-weight:750;overflow-wrap:anywhere}
+.card-hint{padding:0 11px 12px;color:var(--muted);font-size:.8rem}
+.card-tools{display:flex;gap:6px;padding:0 9px 9px}
+.card-tools button{flex:1;min-height:38px;padding:7px;font-size:.82rem}
+.empty{border:1px dashed #bdcbc5;border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
+#recordingControls{background:#f6f5ee;border-radius:12px;padding:12px;margin-top:10px}
+.fullscreen-view{position:fixed;inset:0;z-index:1000;background:#101715;display:none;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.fullscreen-view.open{display:flex}
+.fullscreen-view img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.fullscreen-caption{position:absolute;left:0;right:0;bottom:0;padding:16px 20px calc(16px + env(safe-area-inset-bottom));color:#fff;text-align:center;background:linear-gradient(transparent,#0009);font-weight:700;text-shadow:0 1px 3px #000}
+.fullscreen-close{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:2;background:#ffffffdd;color:#1e2c29;min-width:48px;min-height:48px;border-radius:50%;font-size:1.3rem;padding:8px}
+footer{padding:0 16px 26px;color:var(--muted);font-size:.82rem;line-height:1.6}
+@media(max-width:560px){main{padding:10px}.panel{padding:13px}#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>おととイメージ</h1>
+<p>音と画像をひと組にして、画像をタップすると音が鳴るアプリ。</p>
+</div></header>
+<main>
+<section class="panel">
+  <h2>登録</h2>
+  <p class="small">「登録する」を押すと、音の録音・選択と写真の撮影・選択ができます。</p>
+  <button class="primary" id="openRegister" style="width:100%">登録する</button>
+  <div id="registerForm" class="hidden">
+    <label for="itemName">名前</label>
+    <input id="itemName" type="text" placeholder="例：鳥の声">
+    <div class="field-group">
+      <h2>音を用意する</h2>
+      <div class="actions">
+        <button class="secondary" id="showRecorder">録音する</button>
+        <button class="secondary" id="chooseAudio">保存済みの音から選ぶ</button>
+      </div>
+      <input id="audioFile" class="hidden" type="file" accept="audio/*">
+      <div id="recordingControls" class="hidden">
+        <p class="small" id="recordHint">録音を開始して、終わったら停止してください。</p>
+        <div class="actions">
+          <button class="primary" id="startRec">録音を開始</button>
+          <button class="secondary" id="stopRec" disabled>録音を停止</button>
+        </div>
+      </div>
+      <div class="small" id="audioChoiceStatus" aria-live="polite">音はまだ選ばれていません。</div>
+    </div>
+    <div class="field-group">
+      <h2>画像を用意する</h2>
+      <div class="actions">
+        <button class="secondary" id="takePhoto">写真を撮る</button>
+        <button class="secondary" id="choosePhoto">保存済みの写真から選ぶ</button>
+      </div>
+      <input id="cameraFile" class="hidden" type="file" accept="image/*" capture="environment">
+      <input id="imageFile" class="hidden" type="file" accept="image/*">
+      <div class="small" id="imageChoiceStatus" aria-live="polite">写真はまだ選ばれていません。</div>
+      <img id="imagePreview" class="hidden" alt="選択した画像のプレビュー" style="width:100%;max-height:220px;object-fit:contain;margin-top:8px;border-radius:10px">
+    </div>
+    <div class="actions">
+      <button class="primary" id="addItem">この内容で登録</button>
+      <button class="secondary" id="cancelRegister">キャンセル</button>
+    </div>
+    <div class="status" id="status" aria-live="polite">名前、音、画像を用意してください。</div>
+  </div>
+</section>
+<section class="panel">
+  <h2>登録した音と画像</h2>
+  <p class="small">画像をタップすると、対応する音が再生されます。音の再生中は画像が画面いっぱいに表示されます。</p>
+  <div class="actions" style="margin:0 0 14px">
+    <button class="primary" id="randomPlay" disabled>ランダムに1つ再生</button>
+  </div>
+  <div id="cards"><div class="empty">まだ登録データはありません。</div></div>
+</section>
+</main>
+<div id="fullscreenView" class="fullscreen-view" role="dialog" aria-modal="true" aria-label="音のイメージ表示">
+<button type="button" id="fullscreenClose" class="fullscreen-close" aria-label="閉じる">×</button>
+<img id="fullscreenImage" alt="">
+<div id="fullscreenCaption" class="fullscreen-caption"></div>
+</div>
+<footer>試作版では、登録したデータはこのページを開いている間だけ保持されます。再読み込みやページを閉じると消えます。iPadで録音するには、SafariでHTTPSのWebページとして開き、マイクの使用を許可してください。保存済みの音から選ぶ場合は音声ファイルを選択してください（動画ファイルには対応していません）。</footer>
+<script>
+const $ = id => document.getElementById(id);
+let items = [];
+let chosenAudioFile = null;
+let recordedBlob = null;
+let recorder = null;
+let stream = null;
+let chunks = [];
+let imageFileChosen = null;
+let imagePreviewUrl = null;
+let currentPlayback = null;
+let currentItem = null;
+
+function setStatus(msg){ $('status').textContent = msg; }
+function audioLabel(){ return recordedBlob ? '録音した音を用意しました。' : chosenAudioFile ? '選択した音：' + chosenAudioFile.name : '音はまだ選ばれていません。'; }
+function updateAudioStatus(){ $('audioChoiceStatus').textContent = audioLabel(); }
+function updateImageStatus(){
+  $('imageChoiceStatus').textContent = imageFileChosen ? '選択した画像：' + imageFileChosen.name : '写真はまだ選ばれていません。';
+  if(imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+  imagePreviewUrl = null;
+  if(imageFileChosen){ imagePreviewUrl = URL.createObjectURL(imageFileChosen); $('imagePreview').src = imagePreviewUrl; $('imagePreview').classList.remove('hidden'); }
+  else { $('imagePreview').removeAttribute('src'); $('imagePreview').classList.add('hidden'); }
+}
+function resetRegister(){
+  $('itemName').value = '';
+  $('audioFile').value = '';
+  $('cameraFile').value = '';
+  $('imageFile').value = '';
+  chosenAudioFile = null;
+  recordedBlob = null;
+  imageFileChosen = null;
+  $('recordingControls').classList.add('hidden');
+  $('recordHint').textContent = '録音を開始して、終わったら停止してください。';
+  $('startRec').disabled = false;
+  $('stopRec').disabled = true;
+  updateAudioStatus(); updateImageStatus();
+  setStatus('名前、音、画像を用意してください。');
+}
+$('openRegister').addEventListener('click',()=>{
+  $('registerForm').classList.toggle('hidden');
+  $('openRegister').textContent = $('registerForm').classList.contains('hidden') ? '登録する' : '登録フォームを閉じる';
+});
+$('cancelRegister').addEventListener('click',()=>{
+  if(recorder && recorder.state !== 'inactive') recorder.stop();
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=null; recorder=null;
+  resetRegister();
+  $('registerForm').classList.add('hidden');
+  $('openRegister').textContent='登録する';
+});
+$('chooseAudio').addEventListener('click',()=> $('audioFile').click());
+$('audioFile').addEventListener('change',()=>{
+  chosenAudioFile = $('audioFile').files[0] || null;
+  recordedBlob = null;
+  updateAudioStatus();
+});
+$('showRecorder').addEventListener('click',()=>{
+  $('recordingControls').classList.remove('hidden');
+  $('recordHint').textContent = '録音を開始して、終わったら停止してください。';
+});
+function supportedRecorderOptions(){
+  if(!window.MediaRecorder) return null;
+  const candidates=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/aac'];
+  for(const mimeType of candidates){
+    try{ if(MediaRecorder.isTypeSupported(mimeType)) return {mimeType}; }catch(e){}
+  }
+  return {};
+}
+$('startRec').addEventListener('click',async()=>{
+  try{
+    if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      $('recordHint').textContent='この開き方では録音できません。SafariでHTTPSのWebページを開いてください。';
+      return;
+    }
+    if(!window.MediaRecorder){
+      $('recordHint').textContent='このブラウザでは録音機能が使えません。Safariを最新版にして試してください。';
+      return;
+    }
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    chunks=[];
+    const options=supportedRecorderOptions() || {};
+    recorder = new MediaRecorder(stream, options);
+    recorder.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    recorder.onerror=()=>{ $('recordHint').textContent='録音中にエラーが起きました。もう一度試してください。'; };
+    recorder.onstop=()=>{
+      const type=(recorder && recorder.mimeType) || (chunks[0] && chunks[0].type) || 'audio/mp4';
+      recordedBlob=new Blob(chunks,{type});
+      chosenAudioFile=null;
+      $('audioFile').value='';
+      if(stream) stream.getTracks().forEach(t=>t.stop());
+      stream=null;
+      $('recordHint').textContent=recordedBlob.size ? '録音できました。' : '録音データがありません。もう一度録音してください。';
+      $('startRec').disabled=false;
+      $('stopRec').disabled=true;
+      updateAudioStatus();
+    };
+    recorder.start();
+    $('startRec').disabled=true;
+    $('stopRec').disabled=false;
+    $('recordHint').textContent='録音中です。終わったら「録音を停止」を押してください。';
+  }catch(err){
+    $('recordHint').textContent='マイクを使えませんでした。Safariのマイク許可を確認してください。';
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=null;
+  }
+});
+$('stopRec').addEventListener('click',()=>{
+  if(recorder && recorder.state!=='inactive') recorder.stop();
+});
+$('takePhoto').addEventListener('click',()=> $('cameraFile').click());
+$('choosePhoto').addEventListener('click',()=> $('imageFile').click());
+$('cameraFile').addEventListener('change',()=>{
+  imageFileChosen=$('cameraFile').files[0]||null;
+  if(imageFileChosen) $('imageFile').value='';
+  updateImageStatus();
+});
+$('imageFile').addEventListener('change',()=>{
+  imageFileChosen=$('imageFile').files[0]||null;
+  if(imageFileChosen) $('cameraFile').value='';
+  updateImageStatus();
+});
+$('addItem').addEventListener('click',()=>{
+  const name=$('itemName').value.trim();
+  const audio=recordedBlob || chosenAudioFile;
+  if(!name){setStatus('名前を入力してください。');return;}
+  if(!audio){setStatus('「録音する」か「保存済みの音から選ぶ」で音を用意してください。');return;}
+  if(!imageFileChosen){setStatus('「写真を撮る」か「保存済みの写真から選ぶ」で画像を用意してください。');return;}
+  if(recorder && recorder.state!=='inactive'){setStatus('先に録音を停止してください。');return;}
+  const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())),name,audioUrl:URL.createObjectURL(audio),imageUrl:URL.createObjectURL(imageFileChosen)};
+  items.push(item);
+  renderCards();
+  resetRegister();
+  $('registerForm').classList.add('hidden');
+  $('openRegister').textContent='登録する';
+  setStatus('登録しました。画像をタップすると音が鳴ります。');
+});
+function renderCards(){
+  const root=$('cards'); root.innerHTML='';
+  $('randomPlay').disabled=items.length===0;
+  if(!items.length){root.innerHTML='<div class="empty">まだ登録データはありません。</div>';return;}
+  items.forEach(item=>{
+    const card=document.createElement('article');card.className='sound-card';
+    const play=document.createElement('button');play.className='play-card';play.type='button';play.setAttribute('aria-label',item.name+'の画像をタップして再生');
+    const thumb=document.createElement('div');thumb.className='thumb';
+    const img=document.createElement('img');img.src=item.imageUrl;img.alt=item.name;thumb.appendChild(img);
+    const title=document.createElement('div');title.className='card-title';title.textContent=item.name;
+    const hint=document.createElement('div');hint.className='card-hint';hint.textContent='画像をタップして再生';
+    play.append(thumb,title,hint);play.addEventListener('click',()=>playAudio(item));
+    const tools=document.createElement('div');tools.className='card-tools';
+    const playBtn=document.createElement('button');playBtn.className='secondary';playBtn.textContent='再生';playBtn.addEventListener('click',()=>playAudio(item));
+    const delBtn=document.createElement('button');delBtn.className='danger';delBtn.textContent='削除';delBtn.addEventListener('click',()=>deleteItem(item.id));
+    tools.append(playBtn,delBtn);card.append(play,tools);root.appendChild(card);
+  });
+}
+function showFullscreenImage(item){
+  $('fullscreenImage').src=item.imageUrl;
+  $('fullscreenImage').alt=item.name;
+  $('fullscreenCaption').textContent=item.name+' · 画像をタップすると再生';
+  $('fullscreenView').classList.add('open');
+}
+function hideFullscreenImage(){ $('fullscreenView').classList.remove('open'); }
+$('fullscreenClose').addEventListener('click',e=>{e.stopPropagation();hideFullscreenImage();});
+$('fullscreenImage').addEventListener('click',e=>{e.stopPropagation();if(currentItem)playAudio(currentItem);});
+$('fullscreenView').addEventListener('click',e=>{if(e.target===$('fullscreenView'))hideFullscreenImage();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideFullscreenImage();});
+function playAudio(item){
+  if(currentPlayback){currentPlayback.pause();currentPlayback.currentTime=0;currentPlayback=null;}
+  currentItem=item;
+  showFullscreenImage(item);
+  const audio=new Audio(item.audioUrl);currentPlayback=audio;
+  audio.addEventListener('ended',()=>{if(currentPlayback===audio){currentPlayback=null;$('fullscreenCaption').textContent=item.name+' · もう一度画像をタップすると再生';}},{once:true});
+  audio.addEventListener('error',()=>{if(currentPlayback===audio)currentPlayback=null;$('fullscreenCaption').textContent='この音声形式を再生できませんでした。別の音声ファイルを試してください。';},{once:true});
+  audio.play().catch(()=>{$('fullscreenCaption').textContent='再生できませんでした。もう一度画像をタップしてください。';});
+}
+function deleteItem(id){
+  const item=items.find(x=>x.id===id);if(!item)return;
+  if(currentItem && currentItem.id===id && currentPlayback){currentPlayback.pause();currentPlayback=null;hideFullscreenImage();}
+  URL.revokeObjectURL(item.audioUrl);URL.revokeObjectURL(item.imageUrl);
+  items=items.filter(x=>x.id!==id);renderCards();
+}
+$('randomPlay').addEventListener('click',()=>{
+  if(!items.length)return;
+  const item=items[Math.floor(Math.random()*items.length)];
+  playAudio(item);
+});
+window.addEventListener('beforeunload',()=>{
+  items.forEach(i=>{URL.revokeObjectURL(i.audioUrl);URL.revokeObjectURL(i.imageUrl);});
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+});
+</script>
+</body>
+</html>
